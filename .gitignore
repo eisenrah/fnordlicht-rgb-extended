@@ -22,3 +22,5 @@ fifo.o
 sender/sendserial
 
 fnordlicht
+
+fnordlicht.lss
