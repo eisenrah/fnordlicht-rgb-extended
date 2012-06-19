@@ -2,7 +2,7 @@
 # microcontroller and project specific settings
 TARGET = fnordlicht
 F_CPU = 16000000UL
-MCU = atmega8
+MCU = atmega168
 
 OBJECTS += $(patsubst %.c,%.o,$(shell echo *.c))
 HEADERS += $(shell echo *.h)
@@ -10,6 +10,7 @@ HEADERS += $(shell echo *.h)
 LDFLAGS += -L/usr/local/avr/avr/lib
 RS485_ADDRESS = 0x01
 CFLAGS += -DRS485_ADDRESS=$(RS485_ADDRESS)
+CFLAGS += -D__AVR_LIBC_DEPRECATED_ENABLE__
 
 include avr.mk
 

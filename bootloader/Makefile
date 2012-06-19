@@ -74,6 +74,7 @@ OBJECTS += $(patsubst %.c,%.o,$(shell echo *.c))
 HEADERS += $(shell echo *.h)
 CFLAGS += -Werror
 LDFLAGS += -L/usr/local/avr/avr/lib
+CFLAGS += -D__AVR_LIBC_DEPRECATED_ENABLE__
 
 
 .PHONY: all launcher

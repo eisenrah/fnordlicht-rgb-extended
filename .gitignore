@@ -18,3 +18,7 @@ i2c.o
 fnordlicht.o
 
 fifo.o
+
+sender/sendserial
+
+fnordlicht
