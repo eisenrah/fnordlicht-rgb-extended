@@ -109,7 +109,7 @@
 
 /* include the script intpreter per default */
 #ifndef STATIC_SCRIPTS
-#define STATIC_SCRIPTS 1
+#define STATIC_SCRIPTS 0
 #endif
 
 /* include uart support per default */
