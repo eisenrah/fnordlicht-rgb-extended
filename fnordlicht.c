@@ -74,60 +74,97 @@ void init_output(void) { /* {{{ */
 /* }}} */
 
 #if SERIAL_UART
+
+/*für das Einordnen der Befehle*/
+uint8_t checkcommand(uint8_t data) {
+
+   /*Sonderbefehle (erwarten keine weiteren Werte*/
+   static const uint8_t extracommandlist[] = {'i','p',0};
+   /*Farbsetzbefehle*/
+   static const uint8_t colorcommandlist[] = {'r', 'g', 'b', 0};
+   /*weitere Farbbefehle*/
+   static const uint8_t otherextracommandlist[] = {'f', 0};    
+
+   const uint8_t *b1 = extracommandlist;
+   const uint8_t *b2 = colorcommandlist;
+   const uint8_t *b3 = otherextracommandlist;    
+   
+   while(*b1){
+	if(*b1 == data)
+	    return 1;
+	b1++;
+   }
+								 
+   while(*b2){
+	if(*b2 == data)
+	    return 2;
+	b2++;
+   }
+
+   while(*b3){
+	if(*b3 == data)
+	    return 3;
+	b3++;
+   }    
+													      
+  return 0;
+}
+
 /** process serial data received by uart */
 void check_serial_input(uint8_t data)
 /* {{{ */ {
 
-    switch (data) {
-#if 0
-        case '1':
-            global_pwm.channels[0].target_brightness-=1;
-            break;
-        case '4':
-            global_pwm.channels[0].target_brightness+=1;
-            break;
-        case '2':
-            global_pwm.channels[1].target_brightness-=1;
-            break;
-        case '5':
-            global_pwm.channels[1].target_brightness+=1;
-            break;
-        case '3':
-            global_pwm.channels[2].target_brightness-=1;
-            break;
-        case '6':
-            global_pwm.channels[2].target_brightness+=1;
-            break;
-        case '0':
-            global_pwm.channels[0].target_brightness=0;
-            global_pwm.channels[1].target_brightness=0;
-            global_pwm.channels[2].target_brightness=0;
-            break;
-        case '=':
-            global_pwm.channels[0].target_brightness=global_pwm.channels[0].brightness;
-            global_pwm.channels[1].target_brightness=global_pwm.channels[1].brightness;
-            global_pwm.channels[2].target_brightness=global_pwm.channels[2].brightness;
-            break;
-#if SCRIPT_SPEED_CONTROL
-        case '>':
-            script_threads[0].speed_adjustment--;
-            script_threads[1].speed_adjustment--;
-            script_threads[2].speed_adjustment--;
-            break;
-        case '<':
-            script_threads[0].speed_adjustment++;
-            script_threads[1].speed_adjustment++;
-            script_threads[2].speed_adjustment++;
-            break;
-#endif
-        case 'i':
-            TWCR |= _BV(TWSTA) | _BV(TWINT);
-            break;
-#endif
-        case 'p':
-            jump_to_bootloader();
-            break;
-    }
+   static uint8_t expectdata = 0;
+   static uint8_t command = 0; //letzter Befehl   
+   static uint8_t currentstate = 0;
+   static uint8_t fade_speed = 0; //wenn größer 0 wird gefadet, anstatt die Farbe direkt zu setzten
+
+   currentstate = checkcommand(data);//Befehlszuordnung
+
+   if(!expectdata){
+	if (currentstate == 1) {//Sonderbefehle
+   	    switch(data) {
+	    case 'i': jump_to_bootloader(); break;
+	    case 'p': jump_to_bootloader(); break;
+	    }	
+	} else if (currentstate > 1) {//0 wird ausgelassen
+
+	    /*für Befehle die noch Werte brauchen*/
+	    command = data;
+	    UDR0 = command;
+	    expectdata = 1;
+	}	
+   }
+   else {
+	if (checkcommand(command) == 2) {//Farbsetz-Befehle
+
+	    static uint8_t color = 0;
+	    switch(command) {
+	    case 'r': color = 0; break;
+	    case 'g': color = 1; break;
+	    case 'b': color = 2; break;
+	    }
+
+	    if(fade_speed){
+			/* wenn zu den übergebenen farbcode gefadet werden soll */
+   	        global_pwm.channels[color].speed_h = HIGH(fade_speed);
+   			global_pwm.channels[color].speed_l = LOW(fade_speed);
+	    } else {
+			/*wenn die übergebene Farbe sofort gesetzt werden soll */
+   	        global_pwm.channels[color].brightness=data; 
+	    }
+
+   	    global_pwm.channels[color].target_brightness=data;
+
+	} else if (checkcommand(command) == 3) {//weitere Farbsetz-Befehle
+	    switch(command) {
+	    case 'f': fade_speed = data; break;
+	    }
+	}
+
+	expectdata = 0;
+	UDR0 = 's';
+   }
 } /* }}} */
 #endif
 
